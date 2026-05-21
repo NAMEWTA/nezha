@@ -26,6 +26,7 @@ import { TodoTaskView } from "./TodoTaskView";
 import { ShellTerminalPanel, type ShellTerminalPanelHandle } from "./ShellTerminalPanel";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { useProjectPanels } from "../hooks/useProjectPanels";
+import { useI18n } from "../i18n";
 import s from "../styles";
 
 export function ProjectPage({
@@ -75,6 +76,8 @@ export function ProjectPage({
   onUiFontFamilyChange,
   monoFontFamily,
   onMonoFontFamilyChange,
+  hubMode = false,
+  onExitSkillHub,
 }: {
   project: Project;
   visible?: boolean;
@@ -136,7 +139,10 @@ export function ProjectPage({
   onUiFontFamilyChange: (family: FontFamily) => void;
   monoFontFamily: FontFamily;
   onMonoFontFamilyChange: (family: FontFamily) => void;
+  hubMode?: boolean;
+  onExitSkillHub?: () => void;
 }) {
+  const { t } = useI18n();
   const {
     rightPanel,
     openFiles,
@@ -268,6 +274,7 @@ export function ProjectPage({
         activeProjectId={project.id}
         onSwitch={onSwitchProject}
         onOpen={onOpen}
+        singleProjectMode={hubMode}
       />
       <TaskPanel
         project={project}
@@ -280,7 +287,8 @@ export function ProjectPage({
         onDeleteAllTasks={onDeleteAllTasks}
         onToggleTaskStar={onToggleTaskStar}
         onRunTodo={onRunTodoTask}
-        onBack={onBack}
+        onBack={hubMode ? (onExitSkillHub ?? onBack) : onBack}
+        backTitle={hubMode ? t("skill.taskView.back") : undefined}
         isDark={isDark}
         themeMode={themeMode}
         systemPrefersDark={systemPrefersDark}

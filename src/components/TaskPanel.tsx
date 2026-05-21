@@ -29,6 +29,7 @@ export function TaskPanel({
   onToggleTaskStar,
   onRunTodo,
   onBack,
+  backTitle,
   isDark,
   themeMode,
   systemPrefersDark,
@@ -57,6 +58,7 @@ export function TaskPanel({
   onToggleTaskStar: (id: string) => void;
   onRunTodo: (task: Task) => void;
   onBack: () => void;
+  backTitle?: string;
   isDark: boolean;
   themeMode: ThemeMode;
   systemPrefersDark: boolean;
@@ -127,7 +129,7 @@ export function TaskPanel({
     <div style={s.taskPanel}>
       {/* Project header */}
       <div style={s.panelHeader}>
-        <button style={s.backBtn} onClick={onBack} title={t("task.switchProject")}>
+        <button style={s.backBtn} onClick={onBack} title={backTitle ?? t("task.switchProject")}>
           <ChevronLeft size={15} strokeWidth={2} />
         </button>
         <ProjectAvatar name={project.name} size={22} />
