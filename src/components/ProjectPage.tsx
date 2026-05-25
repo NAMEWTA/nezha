@@ -415,6 +415,7 @@ export function ProjectPage({
                 <RunningView
                   key={task.id}
                   task={task}
+                  projectPath={project.path}
                   runCount={taskRunCounts[task.id] ?? 0}
                   visible={visible && isVisible}
                   projectActive={visible}
