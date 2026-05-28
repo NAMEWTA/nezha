@@ -72,7 +72,12 @@ fn finalize_task_exit(
         had_agent_session = if is_codex {
             codex_path.is_some()
         } else {
-            claude_info.is_some()
+            // lazy attach 注入的占位条目不算"曾真正建立过会话"，
+            // 否则 Claude 异常退出会被误标为 done。
+            claude_info
+                .as_ref()
+                .map(|info| !info.is_placeholder)
+                .unwrap_or(false)
         };
         let mut claimed = tm.claimed_session_paths.lock();
         if let Some(path) = codex_path {
@@ -135,6 +140,26 @@ fn save_task_images(
         let filename = format!("{}.{}", i, ext);
         let file_path = attachments_dir.join(&filename);
         fs::write(&file_path, &data).map_err(|e| e.to_string())?;
+        paths.push(file_path.to_string_lossy().into_owned());
+    }
+    Ok(paths)
+}
+
+fn save_task_texts(
+    project_path: &str,
+    task_id: &str,
+    texts: &[String],
+) -> Result<Vec<String>, String> {
+    if texts.is_empty() {
+        return Ok(vec![]);
+    }
+    let attachments_dir = task_attachments_dir(project_path, task_id);
+    fs::create_dir_all(&attachments_dir).map_err(|e| e.to_string())?;
+    let mut paths = Vec::new();
+    for (i, text) in texts.iter().enumerate() {
+        let filename = format!("paste_{}.txt", i);
+        let file_path = attachments_dir.join(&filename);
+        fs::write(&file_path, text.as_bytes()).map_err(|e| e.to_string())?;
         paths.push(file_path.to_string_lossy().into_owned());
     }
     Ok(paths)
@@ -437,6 +462,7 @@ pub async fn run_task(
     agent: String,
     permission_mode: String,
     images: Option<Vec<String>>,
+    texts: Option<Vec<String>>,
     cols: Option<u16>,
     rows: Option<u16>,
     on_output: Channel<String>,
@@ -459,6 +485,9 @@ pub async fn run_task(
     // 将图片保存至 .nezha/attachments/ 并获取文件路径
     let image_paths = save_task_images(&project_path, &task_id, &images.unwrap_or_default())?;
 
+    // 将文本附件保存至 .nezha/attachments/ 并获取文件路径
+    let text_paths = save_task_texts(&project_path, &task_id, &texts.unwrap_or_default())?;
+
     // 若配置了项目级 prompt_prefix，则拼接到提示词前
     let config = crate::config::read_project_config(project_path.clone()).unwrap_or_default();
     let base_prompt = if config.agent.prompt_prefix.is_empty() {
@@ -468,10 +497,17 @@ pub async fn run_task(
     };
 
     // 将图片路径追加到提示词，供 Claude Code 通过文件工具读取
-    let final_prompt = if image_paths.is_empty() {
+    let prompt_with_images = if image_paths.is_empty() {
         base_prompt
     } else {
         format!("{}\n\n[Attached images]\n{}", base_prompt, image_paths.join("\n"))
+    };
+
+    // 将文本附件路径追加到提示词
+    let final_prompt = if text_paths.is_empty() {
+        prompt_with_images
+    } else {
+        format!("{}\n\n[Attached text files — read these for full context]\n{}", prompt_with_images, text_paths.join("\n"))
     };
 
     let launch = crate::app_settings::get_agent_launch_spec(&agent);
@@ -492,8 +528,11 @@ pub async fn run_task(
 
     let mut cmd = if is_codex {
         let mut c = build_codex_cmd(&agent_bin, &permission_mode);
-        c.arg("--");
-        c.arg(&final_prompt);
+        // 空 prompt 时不传 positional arg，让 CLI 进入交互式 REPL
+        if !final_prompt.is_empty() {
+            c.arg("--");
+            c.arg(&final_prompt);
+        }
         c
     } else {
         let mut c = build_claude_cmd(&agent_bin, &permission_mode);
@@ -502,7 +541,10 @@ pub async fn run_task(
             c.arg("--session-id");
             c.arg(sid);
         }
-        c.arg(&final_prompt);
+        // 空 prompt 时不传 positional arg，让 Claude 进入交互式 REPL
+        if !final_prompt.is_empty() {
+            c.arg(&final_prompt);
+        }
         c
     };
     cmd.cwd(&project_path);
@@ -531,6 +573,7 @@ pub async fn run_task(
         is_codex,
         session_rx,
         pre_session_id,
+        final_prompt.is_empty(),
     );
     spawn_pty_reader(
         app.clone(),
