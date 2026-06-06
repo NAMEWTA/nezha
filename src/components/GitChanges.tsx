@@ -12,8 +12,12 @@ import {
 } from "lucide-react";
 import { useCancellableInvoke } from "../hooks/useCancellableInvoke";
 import s from "../styles";
-import { getGitStatusColor, getGitStatusLabel } from "../utils";
 import { useI18n } from "../i18n";
+import {
+  GitFileBrowser,
+  GitFileViewToggle,
+  useGitFileViewMode,
+} from "./git-view/GitFileBrowser";
 
 interface GitFileChange {
   path: string;
@@ -30,10 +34,6 @@ interface Props {
 
 function fileName(path: string): string {
   return path.split("/").pop() ?? path;
-}
-function fileDir(path: string): string {
-  const parts = path.split("/");
-  return parts.length > 1 ? parts.slice(0, -1).join("/") : "";
 }
 
 export function GitChanges({
@@ -54,6 +54,7 @@ export function GitChanges({
   const [textareaFocused, setTextareaFocused] = useState(false);
   const [trackedCollapsed, setTrackedCollapsed] = useState(false);
   const [untrackedCollapsed, setUntrackedCollapsed] = useState(false);
+  const [fileViewMode, setFileViewMode] = useGitFileViewMode();
 
   const { safeInvoke, isCancelled } = useCancellableInvoke();
 
@@ -314,6 +315,9 @@ export function GitChanges({
         >
           {t("git.all")} {allCount}
         </button>
+        <div style={{ marginLeft: "auto" }}>
+          <GitFileViewToggle mode={fileViewMode} onChange={setFileViewMode} />
+        </div>
       </div>
 
       {/* Error */}
@@ -368,16 +372,14 @@ export function GitChanges({
                       actionTitle={t("git.unstageAll")}
                       onAction={handleUnstageAll}
                     />
-                    {stagedFiles.map((c) => (
-                      <FileRow
-                        key={`staged-${c.path}`}
-                        change={c}
-                        onFileClick={() =>
-                          onFileSelect(c.path, true, `${fileName(c.path)} (staged)`)
-                        }
-                        onToggle={(e) => handleStageToggle(c, e)}
-                      />
-                    ))}
+                    <GitFileBrowser
+                      entries={stagedFiles}
+                      mode={fileViewMode}
+                      onFileClick={(c) =>
+                        onFileSelect(c.path, true, `${fileName(c.path)} (staged)`)
+                      }
+                      onStageToggle={handleStageToggle}
+                    />
                   </>
                 )}
                 {unstagedFiles.length > 0 && (
@@ -389,17 +391,15 @@ export function GitChanges({
                       actionTitle={t("git.stageAll")}
                       onAction={handleStageAll}
                     />
-                    {unstagedFiles.map((c) => (
-                      <FileRow
-                        key={`unstaged-${c.path}`}
-                        change={c}
-                        onFileClick={() =>
-                          onFileSelect(c.path, false, `${fileName(c.path)} (unstaged)`)
-                        }
-                        onToggle={(e) => handleStageToggle(c, e)}
-                        onDiscard={(e) => handleDiscardFile(c, e)}
-                      />
-                    ))}
+                    <GitFileBrowser
+                      entries={unstagedFiles}
+                      mode={fileViewMode}
+                      onFileClick={(c) =>
+                        onFileSelect(c.path, false, `${fileName(c.path)} (unstaged)`)
+                      }
+                      onStageToggle={handleStageToggle}
+                      onDiscard={handleDiscardFile}
+                    />
                   </>
                 )}
               </>
@@ -416,16 +416,17 @@ export function GitChanges({
               collapsed={untrackedCollapsed}
               onToggleCollapse={() => setUntrackedCollapsed((v) => !v)}
             />
-            {!untrackedCollapsed &&
-              untrackedFiles.map((c) => (
-                <FileRow
-                  key={`untracked-${c.path}`}
-                  change={c}
-                  onFileClick={() => onFileSelect(c.path, false, `${fileName(c.path)} (untracked)`)}
-                  onToggle={(e) => handleStageToggle(c, e)}
-                  onDiscard={(e) => handleDiscardFile(c, e)}
-                />
-              ))}
+            {!untrackedCollapsed && (
+              <GitFileBrowser
+                entries={untrackedFiles}
+                mode={fileViewMode}
+                onFileClick={(c) =>
+                  onFileSelect(c.path, false, `${fileName(c.path)} (untracked)`)
+                }
+                onStageToggle={handleStageToggle}
+                onDiscard={handleDiscardFile}
+              />
+            )}
           </>
         )}
       </div>
@@ -642,98 +643,6 @@ function SectionHeader({
         >
           {actionIcon}
         </button>
-      )}
-    </div>
-  );
-}
-
-function FileRow({
-  change,
-  onFileClick,
-  onToggle,
-  onDiscard,
-}: {
-  change: GitFileChange;
-  onFileClick: () => void;
-  onToggle: (e: React.MouseEvent) => void;
-  onDiscard?: (e: React.MouseEvent) => void;
-}) {
-  const { t } = useI18n();
-  const [hovered, setHovered] = useState(false);
-  const name = fileName(change.path);
-  const dir = fileDir(change.path);
-  const color = getGitStatusColor(change.status);
-  const label = getGitStatusLabel(change.status);
-
-  return (
-    <div
-      onClick={onFileClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "4px 10px 4px 14px",
-        cursor: "pointer",
-        background: hovered ? "var(--bg-hover)" : "transparent",
-        transition: "background 0.1s",
-      }}
-    >
-      {/* Status dot */}
-      <span
-        style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }}
-      />
-
-      {/* Status letter */}
-      <span
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color,
-          flexShrink: 0,
-          width: 12,
-          textAlign: "center",
-        }}
-      >
-        {label}
-      </span>
-
-      {/* Filename + dir */}
-      <span style={{ flex: 1, overflow: "hidden", minWidth: 0 }}>
-        <span style={{ fontSize: 12.5, color: "var(--text-primary)", fontWeight: 500 }}>
-          {name}
-        </span>
-        {dir && (
-          <span style={{ fontSize: 11, color: "var(--text-hint)", marginLeft: 5 }}>{dir}</span>
-        )}
-      </span>
-
-      {/* Discard + stage/unstage on hover */}
-      {hovered && (
-        <>
-          {onDiscard && (
-            <button onClick={onDiscard} title={t("git.discard")} style={s.gitChangesRowDiscardBtn}>
-              <Undo2 size={11} />
-            </button>
-          )}
-          <button
-            onClick={onToggle}
-            title={change.staged ? t("git.unstage") : t("git.stage")}
-            style={{
-              flexShrink: 0,
-              background: "var(--bg-card)",
-              border: "1px solid var(--border-dim)",
-              borderRadius: 4,
-              fontSize: 10,
-              padding: "2px 6px",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-            }}
-          >
-            {change.staged ? "−" : "+"}
-          </button>
-        </>
       )}
     </div>
   );
