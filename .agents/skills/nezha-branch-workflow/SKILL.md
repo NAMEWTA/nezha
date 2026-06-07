@@ -1,6 +1,6 @@
 ---
 name: nezha-branch-workflow
-description: Manage the Nezha fork workflow for upstream syncs, personal extension work, and contribution branches. Use when Codex needs to sync upstream/main, merge updates into personal/extensions, choose whether work targets origin or upstream issues/PRs, or create the correct branch for Nezha development.
+description: Manage the Nezha fork workflow for upstream syncs, personal extension work, contribution branches, and tag naming. Use when Codex needs to sync upstream/main, merge updates into personal/extensions, choose whether work targets origin or upstream issues/PRs, create the correct branch, or create/validate tags for Nezha development.
 ---
 
 # Nezha Branch Workflow
@@ -73,6 +73,31 @@ Use lowercase letters, digits, and hyphens for `<type>` and `<slug>`. Do not use
 Any branch that does not start with `personal/` must be treated as a `main`-based branch.
 
 If the target is ambiguous, infer from the wording: extension/private/fork-only implies `origin`; contribution/upstream/official project implies `upstream`. Ask one short clarification only when that inference would be risky.
+
+## Tag Naming
+
+For local extension releases, fork-only releases, or any tag pushed only to `origin`, the tag must use:
+
+```text
+personal-x.x.x
+```
+
+Use a numeric three-part version after `personal-`, for example `personal-0.4.1`, `personal-1.0.0`, or `personal-2.3.4`. Do not use upstream-style tags such as `v0.4.1` for origin-only/personal releases.
+
+Before creating an origin-only tag, validate it:
+
+```bash
+.agents/skills/nezha-branch-workflow/scripts/validate-tag.sh origin personal-<major>.<minor>.<patch>
+```
+
+Then tag and push to `origin`:
+
+```bash
+git tag personal-<major>.<minor>.<patch>
+git push origin personal-<major>.<minor>.<patch>
+```
+
+For upstream contribution work, do not create release tags unless the user explicitly asks for upstream release/tag work. If an upstream tag is required, use the upstream project's tag convention and never use `personal-*`.
 
 ## Issue And PR Lookup
 

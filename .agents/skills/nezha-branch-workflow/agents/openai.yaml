@@ -1,4 +1,4 @@
 interface:
   display_name: "Nezha Branch Workflow"
-  short_description: "Sync upstream and prep Nezha branches"
-  default_prompt: "Use $nezha-branch-workflow to sync upstream main and prepare the correct branch for origin-only or upstream Nezha work."
+  short_description: "Sync branches and guard personal tags"
+  default_prompt: "Use $nezha-branch-workflow to sync upstream main, prepare the correct Nezha branch, and validate personal tag naming."
