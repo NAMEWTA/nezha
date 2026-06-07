@@ -1,3 +1,7 @@
+> **Personal Extensions Notice**
+>
+> This `personal/extensions` branch is a personal extension branch for Nezha. It tracks the upstream Nezha project while adding fork-only behavior and release handling for the personal fork.
+
 <p align="center">
   <img src="docs/images/logo.png" alt="Nezha Logo" width="150" />
 </p>
@@ -12,7 +16,7 @@ Claude Code + Codex, Git, editing, and task management, all in one place.</p>
 </p>
 <p align="center">
   <a href="https://github.com/hanshuaikang/nezha/actions/workflows/checks.yml"><img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/hanshuaikang/nezha/checks.yml?label=checks"></a>
-  <a href="https://github.com/hanshuaikang/nezha/releases"><img alt="Release" src="https://img.shields.io/github/v/release/hanshuaikang/nezha"></a>
+  <a href="https://github.com/NAMEWTA/nezha/releases"><img alt="Personal Release" src="https://img.shields.io/github/v/release/NAMEWTA/nezha?label=personal%20release"></a>
   <a href="https://github.com/hanshuaikang/nezha/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/hanshuaikang/nezha"></a>
 </p>
 
@@ -56,6 +60,18 @@ Upon the first installation on macOS, you might encounter the following security
 ```bash
 xattr -rd com.apple.quarantine /Applications/nezha.app
 ```
+
+## Personal Extension Builds
+
+This branch is maintained as `personal/extensions`, a fork-only extension line for Nezha. It is intended to preserve compatibility with upstream Nezha while carrying personal workflow changes that are not necessarily meant for upstream contribution.
+
+Release notifications in this build resolve GitHub `releases/tag/<tag>` links against the personal fork:
+
+```text
+https://github.com/NAMEWTA/nezha/releases/tag/<tag>
+```
+
+When publishing a new personal build, create the release/tag in `NAMEWTA/nezha`. The in-app notification bell will open the personal release tag for changelog details instead of the upstream `hanshuaikang/nezha` tag.
 
 ## Core Features
 
