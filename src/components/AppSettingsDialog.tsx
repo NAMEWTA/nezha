@@ -116,7 +116,7 @@ export function AppSettingsDialog({
 
   return (
     <div style={s.modalOverlay} onClick={handleOverlayClick}>
-      <div style={s.modalBox}>
+      <div style={s.modalBox} data-shortcut-scope="ignore">
         <div style={s.settingsNav}>
           <div style={s.settingsNavTitle}>{t("appSettings.title")}</div>
           {sectionGroups.map((group, groupIndex) => (

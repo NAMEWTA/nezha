@@ -6,6 +6,7 @@ export const DEFAULT_SEND_SHORTCUT: SendShortcut = "mod_enter";
 export const SHORTCUT_SLOT_MIN = 1;
 export const SHORTCUT_SLOT_MAX = 9;
 export const SHORTCUT_HINT_DELAY_MS = 150;
+export const SHORTCUT_IGNORE_SCOPE_SELECTOR = '[data-shortcut-scope="ignore"]';
 
 export type ShortcutAction =
   | "switch_project_slot"
@@ -359,8 +360,16 @@ export function isEditableShortcutTarget(target: EventTarget | null): boolean {
   }
   return Boolean(
     element.closest(
-      '[contenteditable="true"], .cm-editor, .cm-content, .xterm, .xterm-helper-textarea, [data-shortcut-scope="ignore"]',
+      `[contenteditable="true"], .cm-editor, .cm-content, .xterm, .xterm-helper-textarea, ${SHORTCUT_IGNORE_SCOPE_SELECTOR}`,
     ),
+  );
+}
+
+export function hasActiveShortcutIgnoreScope(root?: Pick<ParentNode, "querySelectorAll">): boolean {
+  const scopeRoot = root ?? (typeof document !== "undefined" ? document : null);
+  if (!scopeRoot) return false;
+  return Array.from(scopeRoot.querySelectorAll<HTMLElement>(SHORTCUT_IGNORE_SCOPE_SELECTOR)).some(
+    (element) => element.getClientRects().length > 0,
   );
 }
 
