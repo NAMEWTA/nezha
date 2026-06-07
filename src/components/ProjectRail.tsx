@@ -75,6 +75,8 @@ function RailItem({
   status,
   attentionCount,
   showBadge,
+  shortcutLabel,
+  shortcutHintsVisible,
   onSwitch,
 }: {
   project: Project;
@@ -82,6 +84,8 @@ function RailItem({
   status: ProjectStatus;
   attentionCount: number;
   showBadge: boolean;
+  shortcutLabel?: string;
+  shortcutHintsVisible?: boolean;
   onSwitch: (p: Project) => void;
 }) {
   const [hov, setHov] = useState(false);
@@ -118,9 +122,21 @@ function RailItem({
       <AttentionIndicator
         status={status}
         count={attentionCount}
-        showBadge={showBadge}
+        showBadge={showBadge && !shortcutHintsVisible}
         borderColor="var(--bg-sidebar)"
       />
+      {shortcutLabel && (
+        <span
+          aria-hidden="true"
+          style={{
+            ...s.railShortcutBadge,
+            opacity: shortcutHintsVisible ? 1 : 0,
+            transform: shortcutHintsVisible ? "translateY(0)" : "translateY(2px)",
+          }}
+        >
+          {shortcutLabel}
+        </span>
+      )}
     </button>
   );
 }
@@ -307,6 +323,9 @@ export function ProjectRail({
   onSwitch,
   onOpen,
   singleProjectMode = false,
+  shortcutLabelsByProjectId,
+  shortcutHintsVisible,
+  openDrawerRequest = 0,
 }: {
   projects: Project[];
   allTasks: Task[];
@@ -315,6 +334,9 @@ export function ProjectRail({
   onSwitch: (project: Project) => void;
   onOpen: () => void;
   singleProjectMode?: boolean;
+  shortcutLabelsByProjectId?: Record<string, string>;
+  shortcutHintsVisible?: boolean;
+  openDrawerRequest?: number;
 }) {
   const { t } = useI18n();
   const [addHov, setAddHov] = useState(false);
@@ -326,6 +348,11 @@ export function ProjectRail({
     () => projects.filter((p) => !p.hiddenFromRail || p.id === activeProjectId),
     [projects, activeProjectId],
   );
+
+  useEffect(() => {
+    if (singleProjectMode || openDrawerRequest <= 0) return;
+    setDrawerOpen(true);
+  }, [openDrawerRequest, singleProjectMode]);
 
   return (
     <div
@@ -353,6 +380,8 @@ export function ProjectRail({
           status={getProjectStatus(allTasks, project.id)}
           attentionCount={getAttentionCount(allTasks, project.id)}
           showBadge={attentionBadge}
+          shortcutLabel={shortcutLabelsByProjectId?.[project.id]}
+          shortcutHintsVisible={shortcutHintsVisible}
           onSwitch={(p) => {
             onSwitch(p);
             setDrawerOpen(false);
