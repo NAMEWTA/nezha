@@ -232,7 +232,7 @@ export function SettingsDialog({
 
   return (
     <div style={s.modalOverlay} onClick={handleOverlayClick}>
-      <div style={s.modalBox}>
+      <div style={s.modalBox} data-shortcut-scope="ignore">
         {/* Left nav */}
         <div style={s.settingsNav}>
           <div style={s.settingsNavTitle}>{t("settings.title")}</div>

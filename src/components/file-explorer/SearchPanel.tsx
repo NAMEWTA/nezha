@@ -129,7 +129,11 @@ export function FileSearchDialog({
 
   return (
     <div style={s.fileSearchDialogBackdrop} onMouseDown={onClose}>
-      <div style={s.fileSearchDialog} onMouseDown={(event) => event.stopPropagation()}>
+      <div
+        style={s.fileSearchDialog}
+        data-shortcut-scope="ignore"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <div style={s.fileSearchDialogHeader}>
           <span style={s.fileSearchDialogTitle}>{t("toolbar.search")}</span>
           <button

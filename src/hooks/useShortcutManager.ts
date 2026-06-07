@@ -8,6 +8,7 @@ import {
   matchesShortcut,
   formatShortcutLabel,
   hasShortcutModifierPressed,
+  hasActiveShortcutIgnoreScope,
   isEditableShortcutTarget,
   normalizeShortcutBindings,
   SHORTCUT_HINT_DELAY_MS,
@@ -153,6 +154,11 @@ export function useShortcutManager({
       const taskBinding = getShortcutBinding(bindings, "switch_task_slot");
       const newTaskBinding = getShortcutBinding(bindings, "new_task");
       const switcherBinding = getShortcutBinding(bindings, "open_project_switcher");
+
+      if (hasActiveShortcutIgnoreScope()) {
+        hideHints();
+        return;
+      }
 
       if (isEditableShortcutTarget(event.target)) {
         hideHints();

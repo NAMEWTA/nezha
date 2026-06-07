@@ -11,6 +11,7 @@ import {
   getSendShortcutSignatures,
   getShortcutBinding,
   getShortcutConflictActions,
+  hasActiveShortcutIgnoreScope,
   isEditableShortcutTarget,
   matchesShortcut,
   normalizeSendShortcut,
@@ -253,6 +254,24 @@ describe("navigation shortcut helpers", () => {
 
     const button = document.createElement("button");
     expect(isEditableShortcutTarget(button)).toBe(false);
+  });
+
+  test("detects active shortcut ignore scopes", () => {
+    expect(hasActiveShortcutIgnoreScope()).toBe(false);
+
+    const modal = document.createElement("div");
+    modal.dataset.shortcutScope = "ignore";
+    document.body.appendChild(modal);
+
+    expect(hasActiveShortcutIgnoreScope()).toBe(false);
+
+    modal.getClientRects = () => ({ length: 1 }) as DOMRectList;
+
+    expect(hasActiveShortcutIgnoreScope()).toBe(true);
+    expect(isEditableShortcutTarget(modal)).toBe(true);
+
+    modal.remove();
+    expect(hasActiveShortcutIgnoreScope()).toBe(false);
   });
 
   test("formats labels and exposes conflict signatures", () => {
