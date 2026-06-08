@@ -1,10 +1,21 @@
-# Nezha — AGENTS.md
+# Nezha Plus — AGENTS.md
 
 ## 项目概述
 
-Nezha 是一款面向 AI 编程智能体（Claude Code、Codex）的桌面任务管理器，提供多项目工作区、实时终端输出、会话自动发现、权限感知执行、Git 集成和用量分析等核心功能。
+当前仓库/分支是 **Nezha Plus**：基于上游 Nezha 的 `personal/extensions` 增强线。它保留 Nezha 面向 AI 编程智能体（Claude Code、Codex）的桌面任务管理器核心能力，并在此基础上加入面向个人工作流的 fork-only 功能增强、发布处理和开发辅助能力。
+
+除非用户明确要求做上游贡献，否则本分支上的新增功能默认视为 Nezha Plus 扩展，不应把它描述成上游 Nezha 已有能力。需要与上游保持兼容时，优先保留上游语义和存储路径（例如 `~/.nezha/`、应用内 Nezha 命名等），只在文档、发布说明和扩展行为上明确标注 Nezha Plus。
 
 **技术栈：** React 19 + TypeScript + Vite（前端） · Tauri 2 + Rust（桌面壳） · xterm.js（终端） · Shiki（语法高亮）
+
+---
+
+## Nezha Plus 扩展记录
+
+- 每次有新的拓展功能加入，都必须在 `CHANGELOGS.md` 文件里列出。
+- `CHANGELOGS.md` **只列新增的扩展功能**：不记录上游同步、缺陷修复、重构、依赖升级、格式化、测试补充或普通维护项。
+- 条目应写清日期、功能名和一句面向用户的功能说明；如果功能只服务当前 fork，需要明确它属于 Nezha Plus / `personal/extensions`。
+- README、README_ZH、AGENTS 或知识库中涉及项目定位时，应统一说明当前是 Nezha Plus，是针对 Nezha 的功能增强分支。
 
 ---
 

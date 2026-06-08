@@ -1,6 +1,8 @@
-# Nezha Knowledge Base
+# Nezha Plus Knowledge Base
 
-面向 agent 与新成员的结构化知识库。**只放 WHY、契约、踩坑结论**——WHAT 由代码自身负责。索引文件只列链接 + 描述 + 标签，正文在子文档。
+面向 agent 与新成员的结构化知识库，服务当前 **Nezha Plus** / `personal/extensions` 增强线。Nezha Plus 基于上游 Nezha，文档中涉及底层路径、模块名、事件语义时仍沿用真实的 Nezha 命名；涉及产品定位、发布和 fork-only 扩展时必须明确标注 Nezha Plus。
+
+**只放 WHY、契约、踩坑结论**——WHAT 由代码自身负责。索引文件只列链接 + 描述 + 标签，正文在子文档。
 
 写作规范见 [`.claude/skills/repo-kb/SKILL.md`](../.claude/skills/repo-kb/SKILL.md) 与 [`reference/core-beliefs.md`](../.claude/skills/repo-kb/reference/core-beliefs.md)。
 
@@ -16,4 +18,4 @@
 
 | 文档 | 描述 | 标签 |
 |------|------|------|
-| [Claude Code 与 Codex 的 Hook 支持](./references/agent-hooks-support.md) | 两个 agent 当前版本的 hook 事件/payload 字段/配置方式/信任机制全量对照，以及 Nezha 订阅哪些事件、为何这样映射，面向 hook 链路开发与排查 | `hooks`, `claude-code`, `codex`, `event-watcher`, `session-discovery`, `input-required` |
+| [Claude Code 与 Codex 的 Hook 支持](./references/agent-hooks-support.md) | 两个 agent 当前版本的 hook 事件/payload 字段/配置方式/信任机制全量对照，以及 Nezha Plus 继承的 Nezha hook 链路订阅哪些事件、为何这样映射，面向 hook 链路开发与排查 | `hooks`, `claude-code`, `codex`, `event-watcher`, `session-discovery`, `input-required` |

@@ -1,19 +1,23 @@
+> **Nezha Plus 说明**
+>
+> 当前仓库代表 **Nezha Plus**，即基于上游 Nezha 的 `personal/extensions` 增强线。Nezha Plus 保留 Nezha 的核心体验，同时加入面向个人工作流的 fork-only 功能、流程增强和个人发布处理。
+
 <p align="center">
   <img src="docs/images/logo.png" alt="Nezha Logo" width="150" />
 </p>
 
-<h1 align="center">哪吒(Nezha): 三头六臂，并发编程</h1>
+<h1 align="center">Nezha Plus：面向 AI 编程智能体的增强版桌面工作台</h1>
 
 <p align="center">
-  专为 AI 编程量身打造的高效率轻量级 AI-Native IDE 
+  基于 Nezha 的增强分支，为 AI 编程工作流加入更多个人效率扩展
 </p>
 
 <p align="center">
-  多项目工作区, 快速切换多个项目的 vibecoding 任务 · 实时终端 · 会话自动发现 · 原生 Git 集成 · 轻量级代码编辑器 · 实时套餐额度显示
+  多项目工作区 · 快速切换多个项目的 vibecoding 任务 · 实时终端 · 会话自动发现 · 原生 Git 集成 · 轻量级代码编辑器 · Nezha Plus 扩展能力
 </p>
 <p align="center">
   <a href="https://github.com/hanshuaikang/nezha/actions/workflows/checks.yml"><img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/hanshuaikang/nezha/checks.yml?label=checks"></a>
-  <a href="https://github.com/hanshuaikang/nezha/releases"><img alt="Release" src="https://img.shields.io/github/v/release/hanshuaikang/nezha"></a>
+  <a href="https://github.com/NAMEWTA/nezha/releases"><img alt="Nezha Plus Release" src="https://img.shields.io/github/v/release/NAMEWTA/nezha?label=personal%20release"></a>
   <a href="https://github.com/hanshuaikang/nezha/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/hanshuaikang/nezha"></a>
 </p>
 
@@ -38,21 +42,39 @@
   <img src="docs/images/index.gif" alt="Nezha 产品图" width="80%" />
 </p>
 
-Nezha 是一款专为 AI 编程场景打造的桌面应用。它把多项目管理、任务生命周期追踪、原生终端体验、会话回放、代码浏览和完整 Git 工作流整合到同一个界面里，让你不必在终端、编辑器、Git 工具和会话记录之间来回切换。只需要通过鼠标点击，就可以瞬间切换到不同的项目或任务。同时安装包只有 7M 大小，告别 IDE 的笨重。
+Nezha Plus 是基于上游 Nezha 的增强版桌面应用，面向 AI 编程场景和多智能体并行工作流。它保留 Nezha 的多项目管理、任务生命周期追踪、原生终端体验、会话回放、代码浏览和完整 Git 工作流，同时在此基础上加入面向个人效率的扩展能力，例如更强的 Git 查看体验、快捷键定制、个人发布链接和其他 fork-only 工作流增强。
 
-## 为什么是 Nezha
+你仍然可以在同一个界面中运行 Claude Code 和 Codex，快速切换不同项目或任务，不必在终端、编辑器、Git 工具和会话记录之间来回切换。
 
-传统的 IDE 和 VS Code 这样的编辑器本质上是以开发者为核心设计的，在古法编程时代，插件系统，重构，变量联想等诸多功能都是为了提升效率而存在。而现在 AI 写的代码越来越多，写代码本身真的开始并行了，这在以前是不敢想的事情，但是人的注意力是有限的，如何快速跟踪多个项目的任务，就是哪吒需要解决的事情。
+## 为什么是 Nezha Plus
 
-哪吒以 Agent 优先设计，内置终端直接集成原生 Claude Code 和 Codex。并在此之上集成 任务系统，Git, 终端和代码编辑器。使得对于轻度需求无需打开笨重的 IDE 即可完成任务下发，代码 Review，代码提交等操作的闭环，而且不会打断你在其他项目进行中的工作。
+传统的 IDE 和 VS Code 这样的编辑器本质上是以开发者为核心设计的，在古法编程时代，插件系统、重构、变量联想等诸多功能都是为了提升效率而存在。而现在 AI 写的代码越来越多，写代码本身真的开始并行了，这在以前是不敢想的事情。但是人的注意力是有限的，如何快速跟踪多个项目的任务，就是 Nezha Plus 延续并增强解决的问题。
 
+Nezha Plus 延续 Nezha 的 Agent 优先设计，内置终端直接集成原生 Claude Code 和 Codex，并在此之上集成任务系统、Git、终端和代码编辑器。Plus 线承载的是这个 fork 中新增的增强能力：它们服务于个人工作流和本分支的发布节奏，不一定作为上游贡献提交。
 
-## 安装 Nezha
-在使用哪吒之前你需要先安装好 Claude Code / Codex, 初次安装会遇到"“NeZha”已损坏，无法打开。 你应该将它移到废纸篓。"。这是由于安装包未签名导致的，执行以下语句即可:
+对于日常轻量开发任务，Nezha Plus 让你无需打开笨重 IDE 就能完成任务下发、代码 Review、代码提交等闭环，而且不会打断你在其他项目进行中的工作。
+
+## 安装 Nezha Plus
+
+在使用 Nezha Plus 之前你需要先安装好 Claude Code / Codex。初次安装会遇到"“NeZha”已损坏，无法打开。 你应该将它移到废纸篓。"。这是由于安装包未签名导致的，执行以下语句即可：
 
 ``` bash
 xattr -rd com.apple.quarantine /Applications/nezha.app
 ```
+
+## Nezha Plus 增强构建
+
+当前分支维护为 `personal/extensions`，这是基于上游 Nezha 的 fork-only 增强线。它的目标是尽量保持与上游兼容，同时承载个人工作流增强、个人发布逻辑和不一定适合直接进入上游的功能。
+
+新增的 fork-only 扩展功能统一记录在 [`CHANGELOGS.md`](./CHANGELOGS.md)。这个文件只列 Nezha Plus 新增的扩展功能，不记录上游发布说明、缺陷修复、重构或常规维护项。
+
+此构建中的发布提醒会把 GitHub `releases/tag/<tag>` 链接指向个人 fork：
+
+```text
+https://github.com/NAMEWTA/nezha/releases/tag/<tag>
+```
+
+发布新的 Nezha Plus 构建时，请在 `NAMEWTA/nezha` 创建 release/tag。应用内通知入口会打开个人 release tag，而不是上游 `hanshuaikang/nezha` 的 tag。
 
 ## 核心功能
 
@@ -125,7 +147,7 @@ xattr -rd com.apple.quarantine /Applications/nezha.app
 
 ## 🙏 鸣谢
 
-Nezha 的诞生离不开以下优秀的开源项目，向它们致敬：
+Nezha Plus 构建在上游 Nezha 之上。Nezha 的诞生离不开以下优秀的开源项目，本增强分支也继续受益于它们：
 
 - [Tauri](https://github.com/tauri-apps/tauri) - 构建更小、更快、更安全的桌面应用
 - [React](https://github.com/facebook/react) - 构建用户界面的 JavaScript 库
