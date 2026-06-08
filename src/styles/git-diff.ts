@@ -1,5 +1,17 @@
 import type React from "react";
 
+const gitFileViewToggleBtnBase = {
+  width: 24,
+  height: 22,
+  border: "none",
+  borderRadius: 5,
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  transition: "background 0.1s, color 0.1s",
+} satisfies React.CSSProperties;
+
 export const gitDiff = {
   diffViewer: {
     flex: 1,
@@ -209,25 +221,30 @@ export const gitDiff = {
     background: "var(--bg-card)",
   },
   gitFileViewToggleBtn: {
-    width: 24,
-    height: 22,
-    border: "none",
-    borderRadius: 5,
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    outline: "none",
-    transition: "background 0.1s, color 0.1s",
+    ...gitFileViewToggleBtnBase,
+  },
+  gitFileViewToggleBtnActive: {
+    ...gitFileViewToggleBtnBase,
+    background: "var(--control-selected-bg)",
+    color: "var(--control-selected-fg)",
+  },
+  gitFileViewToggleBtnInactive: {
+    ...gitFileViewToggleBtnBase,
+    background: "transparent",
+    color: "var(--text-hint)",
   },
   gitFileDirectoryRow: {
     display: "flex",
     alignItems: "center",
     gap: 5,
+    width: "100%",
     paddingTop: 4,
     paddingBottom: 4,
     paddingRight: 10,
+    border: "none",
     cursor: "pointer",
+    fontFamily: "var(--font-ui)",
+    textAlign: "left" as const,
     userSelect: "none" as const,
     transition: "background 0.1s",
   },
@@ -243,10 +260,31 @@ export const gitDiff = {
     color: "var(--text-muted)",
     flexShrink: 0,
   },
+  gitFileIcon: {
+    flexShrink: 0,
+  },
   gitFileName: {
     fontSize: 12.5,
     fontWeight: 500,
     color: "var(--text-primary)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+  },
+  gitFileDirectoryName: {
+    fontSize: 12.5,
+    fontWeight: 500,
+    color: "var(--text-primary)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+    flex: 1,
+    minWidth: 0,
+  },
+  gitFileNameHover: {
+    fontSize: 12.5,
+    fontWeight: 500,
+    color: "var(--accent)",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap" as const,
@@ -312,6 +350,17 @@ export const gitDiff = {
     gap: 4,
     flexShrink: 0,
     transition: "opacity 0.1s",
+    opacity: 0,
+    pointerEvents: "none" as const,
+  },
+  gitFileActionsVisible: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 0,
+    transition: "opacity 0.1s",
+    opacity: 1,
+    pointerEvents: "auto" as const,
   },
   gitFileStageBtn: {
     flexShrink: 0,

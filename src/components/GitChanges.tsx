@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import {
@@ -13,11 +13,7 @@ import {
 import { useCancellableInvoke } from "../hooks/useCancellableInvoke";
 import s from "../styles";
 import { useI18n } from "../i18n";
-import {
-  GitFileBrowser,
-  GitFileViewToggle,
-  useGitFileViewMode,
-} from "./git-view/GitFileBrowser";
+import { GitFileBrowser, GitFileViewToggle, useGitFileViewMode } from "./git-view/GitFileBrowser";
 
 interface GitFileChange {
   path: string;
@@ -58,37 +54,45 @@ export function GitChanges({
 
   const { safeInvoke, isCancelled } = useCancellableInvoke();
 
-  const refresh = useCallback(async (options?: { clearError?: boolean }) => {
-    setLoading(true);
-    if (options?.clearError !== false) setError(null);
-    try {
-      const result = await safeInvoke<GitFileChange[]>("git_status", { projectPath });
-      if (result === null) return; // Component unmounted
-      setChanges(result);
-    } catch (e) {
-      if (!isCancelled()) setError(String(e));
-    } finally {
-      if (!isCancelled()) setLoading(false);
-    }
-  }, [projectPath, safeInvoke, isCancelled]);
+  const refresh = useCallback(
+    async (options?: { clearError?: boolean }) => {
+      setLoading(true);
+      if (options?.clearError !== false) setError(null);
+      try {
+        const result = await safeInvoke<GitFileChange[]>("git_status", { projectPath });
+        if (result === null) return; // Component unmounted
+        setChanges(result);
+      } catch (e) {
+        if (!isCancelled()) setError(String(e));
+      } finally {
+        if (!isCancelled()) setLoading(false);
+      }
+    },
+    [projectPath, safeInvoke, isCancelled],
+  );
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   // "Current Task" tab: files modified after task start
-  const taskChanges = currentTaskCreatedAt
-    ? changes.filter((c) => c.staged) // staged = agent's work
-    : [];
+  const taskChanges = useMemo(
+    () => (currentTaskCreatedAt ? changes.filter((c) => c.staged) : []),
+    [changes, currentTaskCreatedAt],
+  );
   const allChanges = changes;
-  const displayed = tab === "task" ? taskChanges : allChanges;
+  const displayed = useMemo(
+    () => (tab === "task" ? taskChanges : allChanges),
+    [allChanges, tab, taskChanges],
+  );
 
-  const trackedFiles = displayed.filter((c) => c.status !== "?");
-  const untrackedFiles = displayed.filter((c) => c.status === "?");
-  const stagedFiles = trackedFiles.filter((c) => c.staged);
-  const unstagedFiles = trackedFiles.filter((c) => !c.staged);
+  const trackedFiles = useMemo(() => displayed.filter((c) => c.status !== "?"), [displayed]);
+  const untrackedFiles = useMemo(() => displayed.filter((c) => c.status === "?"), [displayed]);
+  const stagedFiles = useMemo(() => trackedFiles.filter((c) => c.staged), [trackedFiles]);
+  const unstagedFiles = useMemo(() => trackedFiles.filter((c) => !c.staged), [trackedFiles]);
 
   const handleStageToggle = async (c: GitFileChange, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     try {
       if (c.staged) {
@@ -123,6 +127,7 @@ export function GitChanges({
   };
 
   const handleDiscardFile = async (c: GitFileChange, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     const untracked = c.status === "?";
     const name = fileName(c.path);
@@ -420,9 +425,7 @@ export function GitChanges({
               <GitFileBrowser
                 entries={untrackedFiles}
                 mode={fileViewMode}
-                onFileClick={(c) =>
-                  onFileSelect(c.path, false, `${fileName(c.path)} (untracked)`)
-                }
+                onFileClick={(c) => onFileSelect(c.path, false, `${fileName(c.path)} (untracked)`)}
                 onStageToggle={handleStageToggle}
                 onDiscard={handleDiscardFile}
               />

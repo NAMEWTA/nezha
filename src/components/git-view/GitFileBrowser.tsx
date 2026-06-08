@@ -17,6 +17,11 @@ import { getFileColor, getGitStatusColor, getGitStatusLabel, load, save } from "
 export type GitFileViewMode = "tree" | "list";
 
 export const GIT_FILE_VIEW_MODE_KEY = "nezha.git.fileViewMode";
+const GIT_FILE_TREE_ENTRY_LIMIT = 1000;
+const TREE_NODE_COLLATOR = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
 
 export interface GitFileEntry {
   path: string;
@@ -115,12 +120,9 @@ function GitFileViewToggleButton({
       type="button"
       title={title}
       aria-label={title}
+      aria-pressed={active}
       onClick={onClick}
-      style={{
-        ...s.gitFileViewToggleBtn,
-        background: active ? "var(--control-selected-bg)" : "transparent",
-        color: active ? "var(--control-selected-fg)" : "var(--text-hint)",
-      }}
+      style={active ? s.gitFileViewToggleBtnActive : s.gitFileViewToggleBtnInactive}
     >
       {children}
     </button>
@@ -135,7 +137,11 @@ export function GitFileBrowser<T extends GitFileEntry>({
   onDiscard,
   showStats = false,
 }: GitFileBrowserProps<T>) {
-  const tree = useMemo(() => buildGitFileTree(entries), [entries]);
+  const shouldRenderTree = mode === "tree" && entries.length <= GIT_FILE_TREE_ENTRY_LIMIT;
+  const tree = useMemo(
+    () => (shouldRenderTree ? buildGitFileTree(entries) : []),
+    [entries, shouldRenderTree],
+  );
   const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(() => new Set());
 
   const toggleDirectory = (path: string) => {
@@ -150,7 +156,7 @@ export function GitFileBrowser<T extends GitFileEntry>({
     });
   };
 
-  if (mode === "list") {
+  if (!shouldRenderTree) {
     return (
       <>
         {entries.map((entry) => (
@@ -265,25 +271,14 @@ function GitDirectoryRow<T extends GitFileEntry>({
 }) {
   const [hovered, setHovered] = useState(false);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    e.preventDefault();
-    onToggle();
-  };
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
+      aria-expanded={expanded}
       onClick={onToggle}
-      onKeyDown={handleKeyDown}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        ...s.gitFileDirectoryRow,
-        paddingLeft: 8 + depth * 14,
-        background: hovered ? "var(--bg-hover)" : "transparent",
-      }}
+      style={gitDirectoryRowStyle(depth, hovered)}
     >
       <span style={s.gitFileChevron}>
         {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -291,7 +286,7 @@ function GitDirectoryRow<T extends GitFileEntry>({
       <span style={s.gitFileFolderIcon}>
         {expanded ? <FolderOpen size={13} /> : <Folder size={13} />}
       </span>
-      <span style={{ ...s.gitFileName, flex: 1, minWidth: 0 }}>{node.name}</span>
+      <span style={s.gitFileDirectoryName}>{node.name}</span>
       {showStats && (
         <span style={s.gitFileStats}>
           <span style={s.diffAddCount}>+{node.additions}</span>
@@ -299,7 +294,7 @@ function GitDirectoryRow<T extends GitFileEntry>({
         </span>
       )}
       <span style={s.gitFileCountBadge}>{node.fileCount}</span>
-    </div>
+    </button>
   );
 }
 
@@ -343,30 +338,13 @@ function GitFileRow<T extends GitFileEntry>({
       onKeyDown={handleKeyDown}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        ...s.gitFileRow,
-        paddingLeft: mode === "tree" ? 28 + depth * 14 : 14,
-        cursor: clickable ? "pointer" : "default",
-        background: hovered ? "var(--bg-hover)" : "transparent",
-      }}
+      style={gitFileRowStyle(depth, mode, clickable, hovered)}
     >
-      <span style={{ ...s.gitFileStatusDot, background: color }} />
-      <span style={{ ...s.gitFileStatusLabel, color }}>{label}</span>
-      <File
-        size={13}
-        color={getFileColor(name)}
-        style={{ flexShrink: 0 }}
-        aria-hidden="true"
-      />
+      <span style={gitFileStatusDotStyle(color)} />
+      <span style={gitFileStatusLabelStyle(color)}>{label}</span>
+      <File size={13} color={getFileColor(name)} style={s.gitFileIcon} aria-hidden="true" />
       <span style={s.gitFileNameWrap}>
-        <span
-          style={{
-            ...s.gitFileName,
-            color: hovered && clickable ? "var(--accent)" : "var(--text-primary)",
-          }}
-        >
-          {name}
-        </span>
+        <span style={hovered && clickable ? s.gitFileNameHover : s.gitFileName}>{name}</span>
         {mode === "list" && dir && <span style={s.gitFileDir}>{dir}</span>}
       </span>
       {showStats && (
@@ -376,17 +354,15 @@ function GitFileRow<T extends GitFileEntry>({
         </span>
       )}
       {hasActions && (
-        <span
-          style={{
-            ...s.gitFileActions,
-            opacity: hovered ? 1 : 0,
-            pointerEvents: hovered ? "auto" : "none",
-          }}
-        >
+        <span style={hovered ? s.gitFileActionsVisible : s.gitFileActions}>
           {onDiscard && (
             <button
               type="button"
-              onClick={(e) => onDiscard(entry, e)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDiscard(entry, e);
+              }}
               title={t("git.discard")}
               style={s.gitChangesRowDiscardBtn}
             >
@@ -396,7 +372,11 @@ function GitFileRow<T extends GitFileEntry>({
           {onStageToggle && (
             <button
               type="button"
-              onClick={(e) => onStageToggle(entry, e)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onStageToggle(entry, e);
+              }}
               title={entry.staged ? t("git.unstage") : t("git.stage")}
               style={s.gitFileStageBtn}
             >
@@ -409,18 +389,57 @@ function GitFileRow<T extends GitFileEntry>({
   );
 }
 
+function gitDirectoryRowStyle(depth: number, hovered: boolean): React.CSSProperties {
+  return {
+    ...s.gitFileDirectoryRow,
+    paddingLeft: 8 + depth * 14,
+    background: hovered ? "var(--bg-hover)" : "transparent",
+  };
+}
+
+function gitFileRowStyle(
+  depth: number,
+  mode: GitFileViewMode,
+  clickable: boolean,
+  hovered: boolean,
+): React.CSSProperties {
+  return {
+    ...s.gitFileRow,
+    paddingLeft: mode === "tree" ? 28 + depth * 14 : 14,
+    cursor: clickable ? "pointer" : "default",
+    background: hovered ? "var(--bg-hover)" : "transparent",
+  };
+}
+
+function gitFileStatusDotStyle(color: string): React.CSSProperties {
+  return {
+    ...s.gitFileStatusDot,
+    background: color,
+  };
+}
+
+function gitFileStatusLabelStyle(color: string): React.CSSProperties {
+  return {
+    ...s.gitFileStatusLabel,
+    color,
+  };
+}
+
 function buildGitFileTree<T extends GitFileEntry>(entries: T[]): GitTreeNode<T>[] {
   const root = createDirectoryNode<T>("", "");
   const directories = new Map<string, GitDirectoryNode<T>>([["", root]]);
 
   for (const entry of entries) {
-    const parts = entry.path.split("/").filter(Boolean);
+    const parts = entry.path.split("/");
     if (parts.length === 0) continue;
 
     let parent = root;
     let currentPath = "";
 
-    for (const part of parts.slice(0, -1)) {
+    for (let index = 0; index < parts.length - 1; index += 1) {
+      const part = parts[index];
+      if (!part) continue;
+
       currentPath = currentPath ? `${currentPath}/${part}` : part;
       let directory = directories.get(currentPath);
 
@@ -483,7 +502,7 @@ function hydrateDirectory<T extends GitFileEntry>(directory: GitDirectoryNode<T>
 
 function compareTreeNodes<T extends GitFileEntry>(a: GitTreeNode<T>, b: GitTreeNode<T>) {
   if (a.kind !== b.kind) return a.kind === "directory" ? -1 : 1;
-  return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+  return TREE_NODE_COLLATOR.compare(a.name, b.name);
 }
 
 function fileEntryKey(entry: GitFileEntry): string {
