@@ -8,8 +8,11 @@ import {
   Trash2,
   Clock,
   Blocks,
+  Check,
+  Edit3,
   Pin,
   PinOff,
+  X,
 } from "lucide-react";
 import type {
   Project,
@@ -21,7 +24,14 @@ import type {
   FontFamily,
   SkillHubConfig,
 } from "../types";
-import { getAvatarGradient, shortenPath } from "../utils";
+import {
+  getAvatarGradient,
+  MAX_PROJECT_NAME_LENGTH,
+  projectMatchesSearch,
+  shortenPath,
+  type ProjectNameValidationError,
+  type ProjectRenameResult,
+} from "../utils";
 import { ProjectAvatar } from "./ProjectAvatar";
 import { SidebarFooterActions } from "./SidebarFooterActions";
 import { OPEN_APP_SETTINGS_EVENT } from "./app-settings/types";
@@ -94,6 +104,7 @@ export function WelcomePage({
   onProjectClick,
   onDeleteProject,
   onToggleProjectHidden,
+  onRenameProject,
   themeVariant,
   themeMode,
   systemPrefersDark,
@@ -119,6 +130,7 @@ export function WelcomePage({
   onProjectClick: (p: Project) => void;
   onDeleteProject: (projectId: string) => void;
   onToggleProjectHidden: (projectId: string) => void;
+  onRenameProject: (projectId: string, name: string) => ProjectRenameResult;
   themeVariant: ThemeVariant;
   themeMode: ThemeMode;
   systemPrefersDark: boolean;
@@ -142,14 +154,45 @@ export function WelcomePage({
   const [hov, setHov] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [view, setView] = useState<"projects" | "timeline" | "skills">("projects");
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingProjectName, setEditingProjectName] = useState("");
+  const [editingProjectError, setEditingProjectError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return projects;
-    const q = query.toLowerCase();
-    return projects.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q),
-    );
+    return projects.filter((project) => projectMatchesSearch(project, query));
   }, [projects, query]);
+
+  function projectNameErrorMessage(error: ProjectNameValidationError) {
+    switch (error) {
+      case "required":
+        return t("project.nameRequired");
+      case "too_long":
+        return t("project.nameTooLong", { max: MAX_PROJECT_NAME_LENGTH });
+      case "duplicate":
+        return t("project.nameDuplicate");
+    }
+  }
+
+  function startEditingProject(project: Project) {
+    setEditingProjectId(project.id);
+    setEditingProjectName(project.name);
+    setEditingProjectError(null);
+  }
+
+  function cancelEditingProject() {
+    setEditingProjectId(null);
+    setEditingProjectName("");
+    setEditingProjectError(null);
+  }
+
+  function saveEditingProject(projectId: string) {
+    const result = onRenameProject(projectId, editingProjectName);
+    if (!result.ok) {
+      setEditingProjectError(projectNameErrorMessage(result.error));
+      return;
+    }
+    cancelEditingProject();
+  }
 
   return (
     <div style={s.welcomeBody}>
@@ -226,9 +269,7 @@ export function WelcomePage({
             config={skillHubConfig}
             allProjects={projects}
             onEnterSkillHub={onEnterSkillHub}
-            onOpenAppSettings={() =>
-              window.dispatchEvent(new CustomEvent(OPEN_APP_SETTINGS_EVENT))
-            }
+            onOpenAppSettings={() => window.dispatchEvent(new CustomEvent(OPEN_APP_SETTINGS_EVENT))}
           />
         ) : (
           <div style={s.welcomePane}>
@@ -270,12 +311,26 @@ export function WelcomePage({
                 <div style={s.projectSectionTitle}>{t("welcome.projects")}</div>
                 <div style={s.projectSectionCaption}>
                   {query.trim()
-                    ? t(pluralKey("welcome.resultCount", "welcome.resultCountPlural", filtered.length), {
-                        count: filtered.length,
-                      })
-                    : t(pluralKey("welcome.projectCount", "welcome.projectCountPlural", projects.length), {
-                        count: projects.length,
-                      })}
+                    ? t(
+                        pluralKey(
+                          "welcome.resultCount",
+                          "welcome.resultCountPlural",
+                          filtered.length,
+                        ),
+                        {
+                          count: filtered.length,
+                        },
+                      )
+                    : t(
+                        pluralKey(
+                          "welcome.projectCount",
+                          "welcome.projectCountPlural",
+                          projects.length,
+                        ),
+                        {
+                          count: projects.length,
+                        },
+                      )}
                 </div>
               </div>
             </div>
@@ -286,17 +341,30 @@ export function WelcomePage({
               ) : (
                 filtered.map((p) => {
                   const [from] = getAvatarGradient(p.name);
+                  const isEditing = editingProjectId === p.id;
+                  const actionOpacity = hov === p.id || isEditing ? 1 : 0;
                   return (
-                    <button
+                    <div
                       key={p.id}
+                      role="button"
+                      tabIndex={0}
                       style={{
                         ...s.projectItem,
                         background: hov === p.id ? "var(--bg-hover)" : "transparent",
                         borderColor: hov === p.id ? "var(--border-medium)" : "transparent",
+                        cursor: isEditing ? "default" : "pointer",
                       }}
                       onMouseEnter={() => setHov(p.id)}
                       onMouseLeave={() => setHov(null)}
-                      onClick={() => onProjectClick(p)}
+                      onClick={() => {
+                        if (!isEditing) onProjectClick(p);
+                      }}
+                      onKeyDown={(e) => {
+                        if (isEditing) return;
+                        if (e.key !== "Enter" && e.key !== " ") return;
+                        e.preventDefault();
+                        onProjectClick(p);
+                      }}
                     >
                       <ProjectAvatar
                         name={p.name}
@@ -305,7 +373,63 @@ export function WelcomePage({
                       />
 
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={s.projectName}>{p.name}</div>
+                        {isEditing ? (
+                          <>
+                            <div style={s.projectRenameRow}>
+                              <input
+                                autoFocus
+                                style={s.projectRenameInput}
+                                value={editingProjectName}
+                                maxLength={MAX_PROJECT_NAME_LENGTH}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  setEditingProjectName(e.target.value);
+                                  setEditingProjectError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  e.stopPropagation();
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    saveEditingProject(p.id);
+                                  }
+                                  if (e.key === "Escape") {
+                                    e.preventDefault();
+                                    cancelEditingProject();
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                style={s.projectIconBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  saveEditingProject(p.id);
+                                }}
+                                title={t("project.saveName")}
+                                aria-label={t("project.saveName")}
+                              >
+                                <Check size={14} strokeWidth={2.2} />
+                              </button>
+                              <button
+                                type="button"
+                                style={s.projectIconBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelEditingProject();
+                                }}
+                                title={t("project.cancelRename")}
+                                aria-label={t("project.cancelRename")}
+                              >
+                                <X size={14} strokeWidth={2.2} />
+                              </button>
+                            </div>
+                            {editingProjectError ? (
+                              <div style={s.projectRenameError}>{editingProjectError}</div>
+                            ) : null}
+                          </>
+                        ) : (
+                          <div style={s.projectName}>{p.name}</div>
+                        )}
                         <div style={s.projectMeta}>{shortenPath(p.path)}</div>
                       </div>
 
@@ -323,9 +447,7 @@ export function WelcomePage({
                         tabIndex={0}
                         style={{
                           ...s.projectPinBtn,
-                          ...(p.hiddenFromRail
-                            ? s.projectPinBtnHidden
-                            : s.projectPinBtnPinned),
+                          ...(p.hiddenFromRail ? s.projectPinBtnHidden : s.projectPinBtnPinned),
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -338,9 +460,7 @@ export function WelcomePage({
                           onToggleProjectHidden(p.id);
                         }}
                         title={
-                          p.hiddenFromRail
-                            ? t("welcome.pinToRail")
-                            : t("welcome.unpinFromRail")
+                          p.hiddenFromRail ? t("welcome.pinToRail") : t("welcome.unpinFromRail")
                         }
                       >
                         {p.hiddenFromRail ? (
@@ -354,22 +474,30 @@ export function WelcomePage({
                       </span>
 
                       <button
+                        type="button"
                         style={{
-                          marginLeft: 8,
-                          padding: "4px 6px",
-                          background: "transparent",
-                          border: "none",
-                          borderRadius: 6,
-                          cursor: "pointer",
+                          ...s.projectIconBtn,
+                          opacity: actionOpacity,
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditingProject(p);
+                        }}
+                        title={t("project.rename")}
+                        aria-label={t("project.rename")}
+                      >
+                        <Edit3 size={14} strokeWidth={1.8} />
+                      </button>
+
+                      <button
+                        type="button"
+                        style={{
+                          ...s.projectIconBtn,
                           color: "var(--text-muted)",
-                          display: "flex",
-                          alignItems: "center",
-                          opacity: hov === p.id ? 1 : 0,
-                          transition: "opacity 0.15s, color 0.15s",
+                          opacity: actionOpacity,
                         }}
                         onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color =
-                            "var(--danger)";
+                          (e.currentTarget as HTMLButtonElement).style.color = "var(--danger)";
                         }}
                         onMouseLeave={(e) => {
                           (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
@@ -382,7 +510,7 @@ export function WelcomePage({
                       >
                         <Trash2 size={14} strokeWidth={1.8} />
                       </button>
-                    </button>
+                    </div>
                   );
                 })
               )}

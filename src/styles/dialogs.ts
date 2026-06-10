@@ -140,6 +140,11 @@ export const dialogs = {
     marginBottom: 5,
   },
   modalLabelHint: { fontSize: 11.5, fontWeight: 400, color: "var(--text-hint)", marginLeft: 6 },
+  modalFieldError: {
+    marginTop: 6,
+    fontSize: 11.5,
+    color: "var(--danger)",
+  },
   modalSelect: {
     width: "100%",
     padding: "8px 28px 8px 10px",
@@ -427,6 +432,20 @@ export const dialogs = {
   },
   settingsInputWithFlex: {
     flex: 1,
+  },
+  settingsReadonlyValue: {
+    width: "100%",
+    padding: "8px 11px",
+    background: "var(--bg-subtle)",
+    border: "1px solid var(--border-dim)",
+    borderRadius: 8,
+    color: "var(--text-muted)",
+    fontSize: 12.5,
+    fontFamily: "var(--font-mono)",
+    boxSizing: "border-box" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   settingsUnitText: {
     color: "var(--text-hint)",

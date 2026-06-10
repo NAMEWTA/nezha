@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   AVATAR_COLORS,
+  deriveProjectName,
   getAvatarGradient,
+  normalizeProjectNameInput,
+  projectMatchesSearch,
+  projectNameEquals,
   shortenPath,
+  validateProjectName,
   load,
   save,
   getGitStatusColor,
@@ -56,6 +61,65 @@ describe("shortenPath", () => {
 
   it("路径仅为 /Users/<username> 时缩短为 ~", () => {
     expect(shortenPath("/Users/john")).toBe("~");
+  });
+});
+
+// ── Project name helpers ─────────────────────────────────────────────────────
+
+describe("deriveProjectName", () => {
+  it("uses the last path segment", () => {
+    expect(deriveProjectName("/Users/john/Documents/project")).toBe("project");
+  });
+
+  it("ignores trailing path separators", () => {
+    expect(deriveProjectName("/Users/john/Documents/project/")).toBe("project");
+    expect(deriveProjectName("C:\\Users\\john\\project\\")).toBe("project");
+  });
+});
+
+describe("project name validation", () => {
+  const projects = [
+    { id: "1", name: "Client App" },
+    { id: "2", name: "API" },
+  ];
+
+  it("trims user input but preserves inner spaces", () => {
+    expect(normalizeProjectNameInput("  Client   App  ")).toBe("Client   App");
+  });
+
+  it("rejects blank names", () => {
+    expect(validateProjectName("  ", projects, "1")).toEqual({ ok: false, error: "required" });
+  });
+
+  it("rejects duplicate names case-insensitively", () => {
+    expect(validateProjectName("api", projects, "1")).toEqual({ ok: false, error: "duplicate" });
+  });
+
+  it("allows the current project to keep or recase its own name", () => {
+    expect(validateProjectName("client app", projects, "1")).toEqual({
+      ok: true,
+      name: "client app",
+    });
+  });
+
+  it("compares NFKC-equivalent names", () => {
+    expect(projectNameEquals("ＡＰＩ", "api")).toBe(true);
+  });
+});
+
+describe("projectMatchesSearch", () => {
+  const project = { name: "Client App", path: "/Users/john/work/client" };
+
+  it("matches by custom project name", () => {
+    expect(projectMatchesSearch(project, "client app")).toBe(true);
+  });
+
+  it("matches by project path", () => {
+    expect(projectMatchesSearch(project, "work/client")).toBe(true);
+  });
+
+  it("returns false when neither name nor path matches", () => {
+    expect(projectMatchesSearch(project, "server")).toBe(false);
   });
 });
 

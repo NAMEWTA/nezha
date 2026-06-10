@@ -1,3 +1,5 @@
+import type { Project } from "./types";
+
 export const AVATAR_COLORS: [string, string][] = [
   ["#2563D6", "#1E4FA8"],
   ["#4F63D7", "#3F46A6"],
@@ -19,6 +21,59 @@ export function getAvatarGradient(name: string): [string, string] {
 
 export function shortenPath(p: string) {
   return p.replace(/^\/Users\/[^/]+/, "~");
+}
+
+export const MAX_PROJECT_NAME_LENGTH = 80;
+
+export type ProjectNameValidationError = "required" | "too_long" | "duplicate";
+
+export type ProjectRenameResult =
+  | { ok: true; name: string }
+  | { ok: false; error: ProjectNameValidationError };
+
+export function deriveProjectName(path: string): string {
+  const trimmed = path.replace(/[\\/]+$/, "");
+  if (!trimmed) return path;
+
+  const parts = trimmed.split(/[\\/]/);
+  return parts[parts.length - 1] || path;
+}
+
+export function normalizeProjectNameInput(value: string): string {
+  return value.trim();
+}
+
+function normalizeProjectNameForCompare(value: string): string {
+  return normalizeProjectNameInput(value).normalize("NFKC").toLocaleLowerCase();
+}
+
+export function projectNameEquals(a: string, b: string): boolean {
+  return normalizeProjectNameForCompare(a) === normalizeProjectNameForCompare(b);
+}
+
+export function validateProjectName(
+  input: string,
+  projects: Pick<Project, "id" | "name">[],
+  projectId: string,
+): ProjectRenameResult {
+  const name = normalizeProjectNameInput(input);
+  if (!name) return { ok: false, error: "required" };
+  if (name.length > MAX_PROJECT_NAME_LENGTH) return { ok: false, error: "too_long" };
+  if (
+    projects.some((project) => project.id !== projectId && projectNameEquals(project.name, name))
+  ) {
+    return { ok: false, error: "duplicate" };
+  }
+  return { ok: true, name };
+}
+
+export function projectMatchesSearch(project: Pick<Project, "name" | "path">, query: string) {
+  const normalizedQuery = query.trim().normalize("NFKC").toLocaleLowerCase();
+  if (!normalizedQuery) return true;
+
+  return [project.name, project.path].some((value) =>
+    value.normalize("NFKC").toLocaleLowerCase().includes(normalizedQuery),
+  );
 }
 
 export function load<T>(key: string, fallback: T): T {
@@ -88,8 +143,7 @@ export function getFileColor(name: string, ext?: string): string {
   const e = ext ?? (name.includes(".") ? name.split(".").pop()!.toLowerCase() : "");
 
   if (n === "dockerfile" || n.startsWith("dockerfile.")) return "var(--icon-file-docker)";
-  if (n === "makefile" || n === "gnumakefile" || n === "justfile")
-    return "var(--icon-file-build)";
+  if (n === "makefile" || n === "gnumakefile" || n === "justfile") return "var(--icon-file-build)";
   if (n === "gemfile" || n === "rakefile") return "var(--icon-file-ruby)";
   if (n.startsWith(".git") || n.startsWith(".docker") || n === ".editorconfig" || n === ".npmrc")
     return "var(--icon-file-config)";

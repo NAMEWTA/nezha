@@ -538,7 +538,10 @@ export function ProjectPage({
       )}
 
       {showSettings && (
-        <SettingsDialog projectPath={project.path} onClose={() => setShowSettings(false)} />
+        <SettingsDialog
+          project={project}
+          onClose={() => setShowSettings(false)}
+        />
       )}
     </div>
   );
