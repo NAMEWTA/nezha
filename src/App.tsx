@@ -36,16 +36,14 @@ import { APP_PLATFORM } from "./platform";
 import { useTerminalManager } from "./hooks/useTerminalManager";
 import { useWorktreeDiffStats } from "./hooks/useWorktreeDiffStats";
 import { useI18n } from "./i18n";
+import {
+  deriveProjectName,
+  normalizeProjectNameInput,
+  validateProjectName,
+  type ProjectRenameResult,
+} from "./utils";
 import s from "./styles";
 import "./App.css";
-
-function deriveProjectName(path: string): string {
-  const trimmed = path.replace(/[\\/]+$/, "");
-  if (!trimmed) return path;
-
-  const parts = trimmed.split(/[\\/]/);
-  return parts[parts.length - 1] || path;
-}
 
 function persistProjects(
   projects: Project[],
@@ -983,6 +981,38 @@ function App() {
     });
   }
 
+  function handleRenameProject(projectId: string, rawName: string): ProjectRenameResult {
+    const current = projects.find((project) => project.id === projectId);
+    const normalizedName = normalizeProjectNameInput(rawName);
+    if (!normalizedName) return { ok: false, error: "required" };
+    if (current && current.name === normalizedName) {
+      return { ok: true, name: current.name };
+    }
+
+    const result = validateProjectName(rawName, projects, projectId);
+    if (!result.ok) return result;
+
+    setProjects((prev) => {
+      let renamed: Project | null = null;
+      const next = prev.map((project) => {
+        if (project.id !== projectId) return project;
+        if (project.name === result.name) return project;
+        renamed = { ...project, name: result.name };
+        return renamed;
+      });
+
+      if (!renamed) return prev;
+      persistProjects(next, showToast, formatSaveProjectsError);
+      return next;
+    });
+
+    setActiveProject((prev) =>
+      prev?.id === projectId && prev.name !== result.name ? { ...prev, name: result.name } : prev,
+    );
+
+    return result;
+  }
+
   function updateTaskStatus(
     taskId: string,
     status: TaskStatus,
@@ -1154,6 +1184,7 @@ function App() {
               onBack={handleBack}
               onSwitchProject={handleProjectClick}
               onOpen={handleOpen}
+              onRenameProject={handleRenameProject}
               themeVariant={themeVariant}
               themeMode={themeMode}
               systemPrefersDark={systemPrefersDark}
@@ -1189,6 +1220,7 @@ function App() {
             onProjectClick={handleProjectClick}
             onDeleteProject={handleDeleteProject}
             onToggleProjectHidden={handleToggleProjectHidden}
+            onRenameProject={handleRenameProject}
             skillHubConfig={skillHubConfig}
             onEnterSkillHub={handleEnterSkillHub}
             themeVariant={themeVariant}

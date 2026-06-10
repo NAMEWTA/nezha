@@ -3,23 +3,11 @@ import { Plus, ChevronsRight, Search, PinOff } from "lucide-react";
 import type { Project, Task } from "../types";
 import { ProjectAvatar } from "./ProjectAvatar";
 import { useI18n } from "../i18n";
+import { projectMatchesSearch } from "../utils";
 import s from "../styles";
 import claudeWaveGif from "../assets/gif/claude-wave.gif";
 
 type ProjectStatus = "attention" | "running" | null;
-
-function normalizeProjectSearchText(value: string) {
-  return value.normalize("NFKC").toLocaleLowerCase();
-}
-
-export function projectMatchesRailSearch(project: Project, query: string) {
-  const normalizedQuery = normalizeProjectSearchText(query.trim());
-  if (!normalizedQuery) return true;
-
-  return [project.name, project.path].some((value) =>
-    normalizeProjectSearchText(value).includes(normalizedQuery),
-  );
-}
 
 function getProjectStatus(tasks: Task[], projectId: string): ProjectStatus {
   const projectTasks = tasks.filter((t) => t.projectId === projectId);
@@ -167,7 +155,7 @@ function ProjectDrawer({
   const [query, setQuery] = useState("");
 
   const filteredProjects = useMemo(() => {
-    return projects.filter((project) => projectMatchesRailSearch(project, query));
+    return projects.filter((project) => projectMatchesSearch(project, query));
   }, [projects, query]);
 
   useEffect(() => {
@@ -421,7 +409,11 @@ export function ProjectRail({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: drawerOpen ? "var(--accent-subtle)" : expandHov ? "var(--bg-hover)" : "none",
+              background: drawerOpen
+                ? "var(--accent-subtle)"
+                : expandHov
+                  ? "var(--bg-hover)"
+                  : "none",
               border: "none",
               borderRadius: 8,
               cursor: "pointer",

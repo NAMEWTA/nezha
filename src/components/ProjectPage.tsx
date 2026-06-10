@@ -28,6 +28,7 @@ import { ShellTerminalPanel, type ShellTerminalPanelHandle } from "./ShellTermin
 import { ErrorBoundary } from "./ErrorBoundary";
 import { useProjectPanels } from "../hooks/useProjectPanels";
 import { useI18n } from "../i18n";
+import type { ProjectRenameResult } from "../utils";
 import s from "../styles";
 
 export function ProjectPage({
@@ -64,6 +65,7 @@ export function ProjectPage({
   onBack,
   onSwitchProject,
   onOpen,
+  onRenameProject,
   themeVariant,
   themeMode,
   systemPrefersDark,
@@ -130,6 +132,7 @@ export function ProjectPage({
   onBack: () => void;
   onSwitchProject: (project: Project) => void;
   onOpen: () => void;
+  onRenameProject: (projectId: string, name: string) => ProjectRenameResult;
   themeVariant: ThemeVariant;
   themeMode: ThemeMode;
   systemPrefersDark: boolean;
@@ -538,7 +541,11 @@ export function ProjectPage({
       )}
 
       {showSettings && (
-        <SettingsDialog projectPath={project.path} onClose={() => setShowSettings(false)} />
+        <SettingsDialog
+          project={project}
+          onRenameProject={onRenameProject}
+          onClose={() => setShowSettings(false)}
+        />
       )}
     </div>
   );

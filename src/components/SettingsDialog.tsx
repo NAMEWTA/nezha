@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import * as RadixSelect from "@radix-ui/react-select";
 import { X, FolderOpen, ChevronDown, Check } from "lucide-react";
-import { permissionModeLabel, type PermissionMode, type AgentType } from "../types";
+import { permissionModeLabel, type PermissionMode, type AgentType, type Project } from "../types";
+import {
+  deriveProjectName,
+  MAX_PROJECT_NAME_LENGTH,
+  shortenPath,
+  type ProjectNameValidationError,
+  type ProjectRenameResult,
+} from "../utils";
 import { useI18n } from "../i18n";
 import s from "../styles";
 
@@ -28,6 +35,20 @@ type NavKey = "project";
 const NAV_ITEMS: Array<{ key: NavKey; label: string }> = [
   { key: "project", label: "settings.projectSettings" },
 ];
+
+function projectNameErrorMessage(
+  error: ProjectNameValidationError,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+) {
+  switch (error) {
+    case "required":
+      return t("project.nameRequired");
+    case "too_long":
+      return t("project.nameTooLong", { max: MAX_PROJECT_NAME_LENGTH });
+    case "duplicate":
+      return t("project.nameDuplicate");
+  }
+}
 
 function Select({
   value,
@@ -76,9 +97,19 @@ function Select({
   );
 }
 
-function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClose: () => void }) {
+function ProjectSettings({
+  project,
+  onRenameProject,
+  onClose,
+}: {
+  project: Project;
+  onRenameProject: (projectId: string, name: string) => ProjectRenameResult;
+  onClose: () => void;
+}) {
   const { t } = useI18n();
   const [config, setConfig] = useState<ProjectConfig | null>(null);
+  const [projectName, setProjectName] = useState(project.name);
+  const [projectNameError, setProjectNameError] = useState<string | null>(null);
   const [agentDefault, setAgentDefault] = useState("claude");
   const [defaultPermissionMode, setDefaultPermissionMode] = useState<PermissionMode>("ask");
   const [promptPrefix, setPromptPrefix] = useState("");
@@ -88,9 +119,10 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const folderName = deriveProjectName(project.path);
 
   useEffect(() => {
-    invoke<ProjectConfig>("read_project_config", { projectPath })
+    invoke<ProjectConfig>("read_project_config", { projectPath: project.path })
       .then((c) => {
         setConfig(c);
         setAgentDefault(c.agent.default);
@@ -100,7 +132,8 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
         }
         setPromptPrefix(c.agent.prompt_prefix ?? "");
         setCommitPrompt(c.git.commit_prompt);
-        const timeoutSecs = c.git.commit_message_timeout_secs ?? DEFAULT_COMMIT_MESSAGE_TIMEOUT_SECS;
+        const timeoutSecs =
+          c.git.commit_message_timeout_secs ?? DEFAULT_COMMIT_MESSAGE_TIMEOUT_SECS;
         setCommitMessageTimeoutSecs(
           String(
             Math.min(
@@ -111,7 +144,12 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
         );
       })
       .catch((e) => setError(String(e)));
-  }, [projectPath]);
+  }, [project.path]);
+
+  useEffect(() => {
+    setProjectName(project.name);
+    setProjectNameError(null);
+  }, [project.id, project.name]);
 
   function handleCommitMessageTimeoutChange(e: React.ChangeEvent<HTMLInputElement>) {
     const nextValue = e.target.value.trim();
@@ -143,7 +181,15 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
   async function handleSave() {
     setSaving(true);
     setError(null);
+    setProjectNameError(null);
     try {
+      const renameResult = onRenameProject(project.id, projectName);
+      if (!renameResult.ok) {
+        setProjectNameError(projectNameErrorMessage(renameResult.error, t));
+        return;
+      }
+      setProjectName(renameResult.name);
+
       const timeoutSecs = Number(commitMessageTimeoutSecs);
       if (
         !Number.isInteger(timeoutSecs) ||
@@ -155,7 +201,7 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
       }
 
       await invoke("write_project_config", {
-        projectPath,
+        projectPath: project.path,
         config: {
           agent: {
             default: agentDefault,
@@ -188,6 +234,44 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
         {config && (
           <>
             <div style={s.modalSection}>
+              <div style={s.modalSectionTitle}>{t("settings.general")}</div>
+              <div style={s.modalField}>
+                <label style={s.modalLabel}>
+                  {t("settings.projectName")}
+                  <span style={s.modalLabelHint}>{t("settings.projectNameHint")}</span>
+                </label>
+                <div style={s.settingsFlexRow}>
+                  <input
+                    style={{ ...s.modalInput, ...s.settingsInputWithFlex }}
+                    value={projectName}
+                    maxLength={MAX_PROJECT_NAME_LENGTH}
+                    onChange={(e) => {
+                      setProjectName(e.target.value);
+                      setProjectNameError(null);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    style={s.settingsInlineBtn}
+                    onClick={() => {
+                      setProjectName(folderName);
+                      setProjectNameError(null);
+                    }}
+                  >
+                    {t("settings.resetProjectName")}
+                  </button>
+                </div>
+                {projectNameError && <div style={s.modalFieldError}>{projectNameError}</div>}
+              </div>
+              <div style={s.modalField}>
+                <label style={s.modalLabel}>{t("settings.projectPath")}</label>
+                <div style={s.settingsReadonlyValue} title={project.path}>
+                  {shortenPath(project.path)}
+                </div>
+              </div>
+            </div>
+
+            <div style={s.modalSection}>
               <div style={s.modalSectionTitle}>{t("settings.agent")}</div>
               <div style={s.modalField}>
                 <label style={s.modalLabel}>
@@ -206,9 +290,7 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
               <div style={s.modalField}>
                 <label style={s.modalLabel}>
                   {t("settings.defaultPermissionMode")}
-                  <span style={s.modalLabelHint}>
-                    {t("settings.defaultPermissionModeHint")}
-                  </span>
+                  <span style={s.modalLabelHint}>{t("settings.defaultPermissionModeHint")}</span>
                 </label>
                 <Select
                   value={defaultPermissionMode}
@@ -240,9 +322,7 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
               <div style={s.modalField}>
                 <label style={s.modalLabel}>
                   {t("settings.commitMessageTimeout")}
-                  <span style={s.modalLabelHint}>
-                    {t("settings.commitMessageTimeoutHint")}
-                  </span>
+                  <span style={s.modalLabelHint}>{t("settings.commitMessageTimeoutHint")}</span>
                 </label>
                 <div style={s.settingsFlexRow}>
                   <input
@@ -260,9 +340,7 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
               <div style={s.modalField}>
                 <label style={s.modalLabel}>
                   {t("settings.commitPrompt")}
-                  <span style={s.modalLabelHint}>
-                    {t("settings.commitPromptHint")}
-                  </span>
+                  <span style={s.modalLabelHint}>{t("settings.commitPromptHint")}</span>
                 </label>
                 <textarea
                   style={s.modalTextarea}
@@ -293,10 +371,12 @@ function ProjectSettings({ projectPath, onClose }: { projectPath: string; onClos
 }
 
 export function SettingsDialog({
-  projectPath,
+  project,
+  onRenameProject,
   onClose,
 }: {
-  projectPath: string;
+  project: Project;
+  onRenameProject: (projectId: string, name: string) => ProjectRenameResult;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -341,7 +421,11 @@ export function SettingsDialog({
           </div>
 
           {activeNav === "project" && (
-            <ProjectSettings projectPath={projectPath} onClose={onClose} />
+            <ProjectSettings
+              project={project}
+              onRenameProject={onRenameProject}
+              onClose={onClose}
+            />
           )}
         </div>
       </div>
